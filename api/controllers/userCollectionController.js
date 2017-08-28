@@ -13,7 +13,7 @@ exports.getPersonalCollection = function (req, res) {
             console.log(err);
             res.status(500).send("Server Error");
         } else {
-            res.json(collection);
+            res.status(200).json(collection);
         }
     });
 };

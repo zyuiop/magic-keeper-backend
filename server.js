@@ -7,8 +7,7 @@ const jwksRsa = require('jwks-rsa');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const conf = require('config.js');
-
+const conf = require('./config');
 
 // Enable CORS
 app.use(cors());
@@ -16,6 +15,10 @@ app.use(cors());
 // Enable body parser middleware
 app.use(bodyParser.text());
 app.use(bodyParser.json());
+app.use((function (req, res, next) {
+    console.log("[" + new Date() + "] " + req.method + " " + req.path + " [" + req.ip + " - " + req.get("User-Agent") + "]");
+    next();
+}));
 
 // Prepare tokens checker
 var jwtCheck = jwt({
@@ -40,7 +43,15 @@ var errorHandler = (function (err, req, res, next) {
 
 // mongoose instance connection url connection
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://' + conf.mongo.username + ':' + conf.mongo.password + '@' + conf.mongo.host + '/' + conf.mongo.database, {useMongoClient: true});
+var userPart = '';
+if (conf.mongo.username) {
+    userPart = conf.mongo.username;
+    if (conf.mongo.password) {
+        userPart += ":" + conf.mongo.password;
+    }
+    userPart += '@';
+}
+mongoose.connect('mongodb://' + userPart + conf.mongo.host + '/' + conf.mongo.database, {useMongoClient: true});
 
 /*
 Load Models

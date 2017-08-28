@@ -1,4 +1,4 @@
-exports = {
+module.exports = {
     mongo: {
         host: null,
         database: null,
