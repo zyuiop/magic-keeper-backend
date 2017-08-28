@@ -1,0 +1,7 @@
+{
+  "name": "magic-backend",
+  "version": "0.0.1",
+  "description": "the backend of magic.zyuiop.net",
+  "title": "Magic Backend API",
+  "url" : "https://magic.zyuiop.net/api"
+}

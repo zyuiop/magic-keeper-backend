@@ -26,7 +26,8 @@ exports.updatePersonalProfile = function (req, res) {
     var allowUpsert = false;
     if (req.body.username) {
         if (!/^[a-zA-Z0-9_-]{3,22}$/.test(req.body.username)) {
-            res.contentType("text/plain").status(400).send("username is invalid");
+            res.contentType("application/json").status(400)
+                .json({"error" : "UsernameIsInvalid", "message" : "username is invalid"});
             return;
         }
 
@@ -35,14 +36,16 @@ exports.updatePersonalProfile = function (req, res) {
     }
 
     if (update === {}) {
-        res.contentType("text/plain").status(400).send("no updated field");
+        res.contentType("application/json").status(400)
+            .json({"error" : "NoUpdatedField", "message" : "no updated field"});
         return;
     }
 
     UserProfileSchema.updateOne({userId: userId}, update, {upsert: allowUpsert}, function(err, task) {
         if (err) {
             if (err.message && err.message.indexOf("duplicate key error") !== -1) {
-                res.contentType("text/plain").status(400).send("username is already used");
+                res.contentType("application/json").status(400)
+                    .json({"error" : "UsernameAlreadyUsed", "message" : "username is already used"});
             } else {
                 console.log(err);
                 res.contentType("text/plain").status(500).send("Server Error");
@@ -64,7 +67,7 @@ exports.getUserProfile = function (req, res) {
             res.send(err);
 
         if (collection === null) {
-            res.contentType("text/plain").status(404).send("User not found");
+            res.contentType("application/json").status(404).json({"error" : "UserNotFound", "message" : "User not found"});
         } else {
             collection.__v = undefined;
             collection.userId = undefined;
@@ -79,7 +82,7 @@ exports.getUserProfileById = function (req, res) {
             res.send(err);
 
         if (collection === null) {
-            res.contentType("text/plain").status(404).send("User not found");
+            res.contentType("application/json").status(404).json({"error" : "UserNotFound", "message" : "User not found"});
         } else {
             collection.__v = undefined;
             collection.userId = undefined;

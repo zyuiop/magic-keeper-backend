@@ -33,14 +33,14 @@ exports.updatePersonalCollection = function (req, res) {
         }
     }
 
-    if (req.body.public) {
+    if (req.body.public !== undefined) {
         if (typeof req.body.public === "boolean") {
             update.public = req.body.public;
         }
     }
 
     if (update === {}) {
-        res.contentType("text/plain").status(400).send("no updated field");
+        res.contentType("application/json").status(400).send({"error": "NoUpdatedField", "message": "no updated field"});
         return;
     }
 
@@ -70,7 +70,7 @@ exports.getPublicCollection = function (req, res) {
         })
         .then((function(user) {
             if (user === null) {
-                res.contentType("text/plain").status(404).send("User not found");
+                res.contentType("application/json").status(404).send({"error": "UserNotFound", "message": "the user was not found"});
                 return;
             }
 
@@ -81,7 +81,7 @@ exports.getPublicCollection = function (req, res) {
                 }
 
                 if (collection === null) {
-                    res.contentType("text/plain").status(404).send("User has no collection");
+                    res.contentType("application/json").status(404).send({"error": "CollectionNotFound", "message": "the user exists but has no collection"});
                 } else {
                     const returnObject = {
                         username: user.username,
