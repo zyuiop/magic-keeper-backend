@@ -13,8 +13,8 @@ const conf = require('./config');
 app.use(cors());
 
 // Enable body parser middleware
-app.use(bodyParser.text());
-app.use(bodyParser.json());
+app.use(bodyParser.text({ limit: '1mb' })); // def 100kb
+app.use(bodyParser.json({ limit: '1mb' }));
 app.use((function (req, res, next) {
     console.log("[" + new Date() + "] " + req.method + " " + req.path + " [" + req.ip + " - " + req.get("User-Agent") + "]");
     next();
@@ -57,11 +57,13 @@ mongoose.connect('mongodb://' + userPart + conf.mongo.host + '/' + conf.mongo.da
 Load Models
  */
 require('./api/models/userCollectionModel');
+require('./api/models/userProfileModel');
 
 /*
 Load Routes
  */
-require('./api/routes/userCollectionRoutes')(app, jwtCheck, errorHandler); // Register routes
+require('./api/routes/userCollectionRoutes')(app, jwtCheck, errorHandler);
+require('./api/routes/userProfileRoutes')(app, jwtCheck, errorHandler);
 
 /*
 Start Server

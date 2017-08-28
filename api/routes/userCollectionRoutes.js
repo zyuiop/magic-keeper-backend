@@ -6,6 +6,6 @@ module.exports = function(app, jwtCheck, errorHandler) {
         .get(jwtCheck, errorHandler, collection.getPersonalCollection)
         .put(jwtCheck, errorHandler, collection.updatePersonalCollection);
 
-    app.route('/collection/:publicUrl')
+    app.route('/collection/:username')
         .get(collection.getPublicCollection); // returns 200 + collection OR 403 OR 404
 };

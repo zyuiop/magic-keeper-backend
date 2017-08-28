@@ -1,7 +1,9 @@
 'use strict';
 
 
-var mongoose = require('mongoose'), UserCollectionSchema = mongoose.model('UserCollections');
+var mongoose = require('mongoose'),
+    UserCollectionSchema = mongoose.model('UserCollections'),
+    UserProfileSchema = mongoose.model('UserProfiles');
 
 /*
 Authenticated requests
@@ -25,33 +27,31 @@ exports.updatePersonalCollection = function (req, res) {
     var update = {};
     var allowUpsert = false;
     if (req.body.userCollection) {
-        // TODO: check (type and data)
-        update.userCollection = req.body.userCollection;
-        allowUpsert = true;
-    }
-
-    if (req.body.publicUrl) {
-        // TODO: check (type and data)
-        update.publicUrl = req.body.publicUrl;
+        if (/^([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8};)*([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8})?$/.test(req.body.userCollection)) {
+            update.userCollection = req.body.userCollection;
+            allowUpsert = true;
+        }
     }
 
     if (req.body.public) {
-        // TODO: check (type and data)
-        update.public = req.body.public;
+        if (typeof req.body.public === "boolean") {
+            update.public = req.body.public;
+        }
     }
+
+    if (update === {}) {
+        res.contentType("text/plain").status(400).send("no updated field");
+        return;
+    }
+
+    update.lastUpdated = new Date();
 
     UserCollectionSchema.updateOne({userId: userId}, update, {upsert: allowUpsert}, function(err, task) {
         if (err) {
-            if (err.message && err.message.indexOf("duplicate key error") !== -1) {
-                res.contentType("text/plain").status(400).send("publicUrl already used");
-            } else {
-                console.log(err);
-                res.contentType("text/plain").status(500).send("Server Error");
-            }
+            console.log(err);
+            res.contentType("text/plain").status(500).send("Server Error");
         } else {
-            res.status(200)
-                .contentType("text/plain")
-                .send("OK");
+            res.status(200).contentType("text/plain").send("OK");
         }
     });
 };
@@ -60,20 +60,45 @@ exports.updatePersonalCollection = function (req, res) {
 Un-authenticated requests
  */
 exports.getPublicCollection = function (req, res) {
-    UserCollectionSchema.findOne({publicUrl: req.params.publicUrl}, function (err, collection) {
-        if (err)
-            res.send(err);
-
-        if (collection === null) {
-            res.contentType("text/plain").status(404).send("Collection not found");
-        } else {
-            collection.userId = undefined;
-            collection.__v = undefined;
-            if (!collection.public) {
-                collection.lastChanged = undefined;
-                collection.userCollection = undefined;
+    UserProfileSchema
+        .findOne({username: req.params.username}, function (err, user) {
+            if (err) {
+                Promise.reject(err);
+            } else {
+                return user;
             }
-            res.status(200).json(collection);
-        }
-    });
+        })
+        .then((function(user) {
+            if (user === null) {
+                res.contentType("text/plain").status(404).send("User not found");
+                return;
+            }
+
+            return UserCollectionSchema.findOne({userId: user.userId}, function (err, collection) {
+                if (err) {
+                    Promise.reject(err);
+                    return;
+                }
+
+                if (collection === null) {
+                    res.contentType("text/plain").status(404).send("User has no collection");
+                } else {
+                    const returnObject = {
+                        username: user.username,
+                        public: collection.public,
+                        _id: collection._id
+                    };
+
+                    if (collection.public) {
+                        returnObject.lastChanged = collection.lastChanged;
+                        returnObject.userCollection = collection.userCollection;
+                    }
+
+                    res.status(200).json(returnObject);
+                }
+            });
+        }), function(err) {
+            console.log(err);
+            res.status(500).send("Server Error");
+        });
 };
