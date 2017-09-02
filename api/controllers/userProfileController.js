@@ -41,6 +41,8 @@ exports.updatePersonalProfile = function (req, res) {
         return;
     }
 
+    update.lastChanged = new Date();
+
     UserProfileSchema.updateOne({userId: userId}, update, {upsert: allowUpsert}, function(err, task) {
         if (err) {
             if (err.message && err.message.indexOf("duplicate key error") !== -1) {
