@@ -21,7 +21,7 @@ app.use((function (req, res, next) {
 }));
 
 // Prepare tokens checker
-var jwtCheck = jwt({
+var jwtParams = {
     secret: jwksRsa.expressJwtSecret({
         cache: true,
         rateLimit: true,
@@ -30,8 +30,13 @@ var jwtCheck = jwt({
     }),
     audience: conf.auth0.audience,
     issuer: "https://" + conf.auth0.domain + "/",
-    algorithms: ['RS256']
-});
+    algorithms: ['RS256'],
+    credentialsRequired: true
+};
+var jwtCheck = jwt(jwtParams);
+
+jwtParams.credentialsRequired = false;
+jwtCheck.opt = jwt(jwtParams);
 
 var errorHandler = (function (err, req, res, next) {
     if (!res.headersSent) {
@@ -58,12 +63,14 @@ Load Models
  */
 require('./api/models/userCollectionModel');
 require('./api/models/userProfileModel');
+require('./api/models/userDeckModel');
 
 /*
 Load Routes
  */
 require('./api/routes/userCollectionRoutes')(app, jwtCheck, errorHandler);
 require('./api/routes/userProfileRoutes')(app, jwtCheck, errorHandler);
+require('./api/routes/userDecksRoutes')(app, jwtCheck, errorHandler);
 
 /*
 Start Server
