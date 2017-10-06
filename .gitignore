@@ -2,3 +2,4 @@ node_modules/
 db/
 config.js
 .idea
+package-lock.json
