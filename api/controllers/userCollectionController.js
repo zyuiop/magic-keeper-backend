@@ -30,6 +30,7 @@ exports.updatePersonalCollection = function (req, res) {
         if (/^([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8};)*([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8})?$/.test(req.body.userCollection)) {
             update.userCollection = req.body.userCollection;
             update.lastChanged = new Date();
+            update.revision = require('uuid/v4')();
             allowUpsert = true;
         }
     }
@@ -87,7 +88,8 @@ exports.getPublicCollection = function (req, res) {
                     const returnObject = {
                         username: user.username,
                         public: collection.public,
-                        _id: collection._id
+                        _id: collection._id,
+                        revision: collection.revision
                     };
 
                     if (collection.public) {

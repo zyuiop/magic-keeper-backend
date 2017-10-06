@@ -9,6 +9,7 @@ var UserCollectionSchema = new mongoose.Schema({
         unique: true
     },
     userCollection: String,
+    revision: String,
     public: {
         type: Boolean,
         default: false
