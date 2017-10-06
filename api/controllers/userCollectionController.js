@@ -29,6 +29,7 @@ exports.updatePersonalCollection = function (req, res) {
     if (req.body.userCollection) {
         if (/^([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8};)*([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8})?$/.test(req.body.userCollection)) {
             update.userCollection = req.body.userCollection;
+            update.lastChanged = new Date();
             allowUpsert = true;
         }
     }
@@ -44,8 +45,6 @@ exports.updatePersonalCollection = function (req, res) {
         return;
     }
 
-    update.lastChanged = new Date();
-
     console.log(update);
 
     UserCollectionSchema.updateOne({userId: userId}, update, {upsert: allowUpsert}, function(err, task) {
@@ -53,7 +52,7 @@ exports.updatePersonalCollection = function (req, res) {
             console.log(err);
             res.contentType("text/plain").status(500).send("Server Error");
         } else {
-            res.status(200).contentType("text/plain").send("OK");
+            res.status(200).contentType("application/json").send({"status" : "ok", "update" : update});
         }
     });
 };
