@@ -41,7 +41,7 @@ exports.createDeck = function (req, res) {
     }
 
     update.userId = userId;
-    update.lastUpdated = new Date();
+    update.lastChanged = new Date();
 
     new UserDecksSchema(update).save(function (err, deck) {
         if (err) {
@@ -87,7 +87,7 @@ exports.updateDeck = function (req, res) {
         return;
     }
 
-    update.lastUpdated = new Date();
+    update.lastChanged = new Date();
 
     UserDecksSchema.findById(deckId, function (err, doc) {
         if (err) {

@@ -44,7 +44,9 @@ exports.updatePersonalCollection = function (req, res) {
         return;
     }
 
-    update.lastUpdated = new Date();
+    update.lastChanged = new Date();
+
+    console.log(update);
 
     UserCollectionSchema.updateOne({userId: userId}, update, {upsert: allowUpsert}, function(err, task) {
         if (err) {
