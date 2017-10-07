@@ -1,7 +1,7 @@
 'use strict';
 
 
-const PROJECT = {id: true, cards: true, name: true, public: true, lastChanged: true, username: "$user.username", userId: 1};
+const PROJECT = {id: true, cards: true, name: true, public: true, lastChanged: true, username: "$user.username", snapshots: true, userId: 1};
 const PROJECT_LIST = {id: true, name: true, public: true, lastChanged: true};
 const NAME_FORMAT = /^[a-zA-Z0-9_éèâêàôùö/\\| !?.-]{3,32}$/;
 const ID_FORMAT = /^[0-9a-fA-F]{24}$/;
@@ -118,6 +118,87 @@ exports.updateDeck = function (req, res) {
     });
 };
 
+function parselands(lands) {
+    return {
+        islands: +lands.islands,
+        mountains: +lands.mountains,
+        swamps: +lands.swamps,
+        plains: +lands.plains,
+        forests: +lands.forests
+    }
+}
+
+exports.makeSnapshot = function (req, res) {
+    var userId = req.user.sub;
+    var deckId = req.params.id;
+
+    if (! ID_FORMAT.test(deckId)) {
+        res.contentType("application/json").status(400).send({"error": "InvalidId", "message": "the provided deck id is not valid"});
+        return;
+    }
+
+    // Check data
+    var snapshot = {};
+    if (req.body.cards !== null) {
+        if (/^([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8};)*([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8})?$/.test(req.body.cards)) {
+            snapshot.cards = req.body.cards;
+        } else {
+            res.contentType("application/json").status(400).send({"error": "InvalidFormat", "message": "cards format is invalid"});
+            return;
+        }
+    } else {
+        res.contentType("application/json").status(400).send({"error": "NoName", "message": "cards are missing"});
+        return;
+    }
+
+    if (req.body.name) {
+        if (NAME_FORMAT.test(req.body.name)) {
+            snapshot.name = req.body.name;
+        } else {
+            res.contentType("application/json").status(400).send({"error": "InvalidFormat", "message": "name format is invalid"});
+            return;
+        }
+    } else {
+        res.contentType("application/json").status(400).send({"error": "NoName", "message": "name is missing"});
+        return;
+    }
+
+    if (req.body.lands) {
+        snapshot.lands = parselands(req.body.lands);
+    } else {
+        res.contentType("application/json").status(400).send({"error": "NoName", "message": "lands are missing"});
+        return;
+    }
+
+    UserDecksSchema.findById(deckId, function (err, doc) {
+        if (err) {
+            console.log(err);
+            res.contentType("text/plain").status(500).send("Server Error");
+        } else {
+            if (!doc) {
+                res.contentType("application/json").status(404).send({"error": "DeckNotFound", "message": "cannot modify a deck that doesn't exist"});
+                return;
+            }
+
+            if (doc.userId !== userId) {
+                res.contentType("application/json").status(403).send({"error": "NotOwner", "message": "cannot modify a deck owned by someone else"});
+                return;
+            }
+
+            UserDecksSchema.updateOne({userId: userId, _id: deckId}, { $push : { snapshots : snapshot }}, function(err, task) {
+                if (err) {
+                    console.log(err);
+                    res.contentType("text/plain").status(500).send("Server Error");
+                } else {
+                    snapshot.status = "ok";
+                    snapshot.date = new Date();
+                    res.status(200).contentType("application/json").send(snapshot);
+                }
+            });
+        }
+    });
+};
+
 exports.deleteDeck = function (req, res) {
     var userId = req.user.sub;
     var deckId = req.params.id;
@@ -205,9 +286,16 @@ exports.getDeck = function (req, res) {
             }
 
             var doc = docs[0];
-            if (doc.userId !== userId && !doc.public) {
-                res.contentType("application/json").status(userId === null ? 401 : 403).send({"error": "NotOwner", "message": "this deck was found but is not owned by the current user"});
-                return;
+            if (doc.userId !== userId) {
+                if (!doc.public) {
+                    res.contentType("application/json").status(userId === null ? 401 : 403).send({
+                        "error": "NotOwner",
+                        "message": "this deck was found but is not owned by the current user"
+                    });
+                    return;
+                }
+
+                doc.snapshots = undefined;
             }
 
             doc.userId = undefined;

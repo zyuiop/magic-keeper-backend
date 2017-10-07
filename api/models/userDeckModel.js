@@ -1,11 +1,23 @@
 'use strict';
 var mongoose = require('mongoose');
 
+var snapshotSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: [true, 'snapshot name is required']
+    },
+    date: {
+        type: Date,
+        default: new Date()
+    },
+    cards: String,
+    lands: mongoose.Schema.Types.Mixed
+});
 
 var UserDeckSchema = new mongoose.Schema({
     userId: {
         type: String,
-        required: [true, 'user id is required'],
+        required: [true, 'user id is required']
     },
     cards: String,
     name: {
@@ -19,6 +31,11 @@ var UserDeckSchema = new mongoose.Schema({
     lastChanged: {
         type: Date,
         default: new Date()
+    },
+    lands: mongoose.Schema.Types.Mixed,
+    snapshots: {
+        type: [snapshotSchema],
+        default: []
     }
 });
 

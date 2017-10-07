@@ -15,4 +15,6 @@ module.exports = function(app, jwtCheck, errorHandler) {
         .delete(jwtCheck, errorHandler, decks.deleteDeck)
         .put(jwtCheck, errorHandler, decks.updateDeck); // returns 200 OR 403
 
+    app.route('/deck/:id/snapshots').put(jwtCheck, errorHandler, decks.makeSnapshot); // returns 200 OR 403
+
 };
