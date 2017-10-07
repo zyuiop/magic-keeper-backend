@@ -1,8 +1,10 @@
 'use strict';
 
 
-const PROJECT = {cards: true, name: true, public: true, lastChanged: true};
-const PROJECT_LIST = {name: true, public: true, lastChanged: true};
+const PROJECT = {id: true, cards: true, name: true, public: true, lastChanged: true, username: "$user.username", userId: 1};
+const PROJECT_LIST = {id: true, name: true, public: true, lastChanged: true};
+const NAME_FORMAT = /^[a-zA-Z0-9_éèâêàôùö/\\| !?.-]{3,32}$/;
+const ID_FORMAT = /^[0-9a-fA-F]{24}$/;
 var mongoose = require('mongoose'),
     UserDecksSchema = mongoose.model('UserDecks'),
     UserProfileSchema = mongoose.model('UserProfiles');
@@ -29,7 +31,7 @@ exports.createDeck = function (req, res) {
     // Check data
     var update = {};
     if (req.body.name) {
-        if (/^[a-zA-Z0-9_ !?.-]{3,32}$/.test(req.body.name)) {
+        if (NAME_FORMAT.test(req.body.name)) {
             update.name = req.body.name;
         } else {
             res.contentType("application/json").status(400).send({"error": "InvalidFormat", "message": "name format is invalid"});
@@ -57,14 +59,14 @@ exports.updateDeck = function (req, res) {
     var userId = req.user.sub;
     var deckId = req.params.id;
 
-    if (! /^[0-9a-fA-F]{12}$/.test(deckId)) {
+    if (! ID_FORMAT.test(deckId)) {
         res.contentType("application/json").status(400).send({"error": "InvalidId", "message": "the provided deck id is not valid"});
         return;
     }
 
     // Check data
     var update = {};
-    if (req.body.cards) {
+    if (req.body.cards !== null) {
         if (/^([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8};)*([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8})?$/.test(req.body.cards)) {
             update.cards = req.body.cards;
         }
@@ -77,7 +79,7 @@ exports.updateDeck = function (req, res) {
     }
 
     if (req.body.name) {
-        if (/^[a-zA-Z0-9_ !?.-]{3,32}$/.test(req.body.name)) {
+        if (NAME_FORMAT.test(req.body.name)) {
             update.name = req.body.name;
         }
     }
@@ -120,7 +122,7 @@ exports.deleteDeck = function (req, res) {
     var userId = req.user.sub;
     var deckId = req.params.id;
 
-    if (! /^[0-9a-fA-F]{12}$/.test(deckId)) {
+    if (! ID_FORMAT.test(deckId)) {
         res.contentType("application/json").status(400).send({"error": "InvalidId", "message": "the provided deck id is not valid"});
         return;
     }
@@ -187,25 +189,28 @@ exports.getDeck = function (req, res) {
     var userId = (req.user ? req.user.sub : null);
     var deckId = req.params.id;
 
-    if (! /^[0-9a-fA-F]{12}$/.test(deckId)) {
+    if (! ID_FORMAT.test(deckId)) {
         res.contentType("application/json").status(400).send({"error": "InvalidId", "message": "the provided deck id is not valid"});
         return;
     }
 
-    UserDecksSchema.findById(deckId, PROJECT, function (err, doc) {
+    UserDecksSchema.aggregate().match({_id: mongoose.Types.ObjectId(deckId)}).lookup({from: "userprofiles", localField: "userId", foreignField: "userId", as: "user"}).project(PROJECT).unwind("username").exec(function (err, docs) {
         if (err) {
             console.log(err);
             res.contentType("text/plain").status(500).send("Server Error");
         } else {
-            if (!doc) {
-                res.contentType("application/json").status(404).send({"error": "DeckNotFound", "message": "cannot modify a deck that doesn't exist"});
+            if (!docs || docs.length === 0) {
+                res.contentType("application/json").status(404).send({"error": "DeckNotFound", "message": "cannot see a deck that doesn't exist"});
                 return;
             }
 
-            if (doc.userId !== userId) {
+            var doc = docs[0];
+            if (doc.userId !== userId && !doc.public) {
                 res.contentType("application/json").status(userId === null ? 401 : 403).send({"error": "NotOwner", "message": "this deck was found but is not owned by the current user"});
                 return;
             }
+
+            doc.userId = undefined;
             res.status(200).json(doc);
         }
     });
