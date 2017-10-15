@@ -138,7 +138,7 @@ exports.makeSnapshot = function (req, res) {
     }
 
     // Check data
-    var snapshot = {};
+    var snapshot = {date: new Date()};
     if (req.body.cards !== null) {
         if (/^([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8};)*([0-9]{1,8}\+?:[0-9]{1,8},[0-9]{1,8})?$/.test(req.body.cards)) {
             snapshot.cards = req.body.cards;
@@ -191,7 +191,6 @@ exports.makeSnapshot = function (req, res) {
                     res.contentType("text/plain").status(500).send("Server Error");
                 } else {
                     snapshot.status = "ok";
-                    snapshot.date = new Date();
                     res.status(200).contentType("application/json").send(snapshot);
                 }
             });
